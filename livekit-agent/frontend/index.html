@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Live Agent</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">GEMINI <span class="accent">LIVE</span></div>
+            <div class="status" id="status">DISCONNECTED</div>
+        </header>
+        
+        <main>
+            <div class="video-wrapper">
+                <div id="video-container" class="video-container">
+                    <!-- Agent Video will appear here -->
+                    <div class="placeholder">
+                        <div class="scanner"></div>
+                        <p>WAITING FOR AGENT</p>
+                    </div>
+                </div>
+                <div class="controls-overlay">
+                    <button id="connect-btn" class="btn primary">CONNECT</button>
+                    <button id="mic-btn" class="btn icon-btn disabled">
+                        <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path fill="currentColor" d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                    </button>
+                    <button id="disconnect-btn" class="btn danger hidden">END</button>
+                </div>
+            </div>
+            
+            <div class="visualizer-container">
+                <canvas id="visualizer"></canvas>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

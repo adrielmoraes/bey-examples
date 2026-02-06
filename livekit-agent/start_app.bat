@@ -1,0 +1,6 @@
+@echo off
+echo Starting Gemini Live Agent...
+start "Backend Agent" cmd /k "python main.py dev"
+echo Starting Frontend Server...
+start "Frontend Server" cmd /k "python frontend/server.py"
+echo Done. Open http://localhost:8000 in your browser.
