@@ -1,72 +1,89 @@
-# Beyond Presence LiveKit Agent
+# Consultoria Empresarial - Gemini Multimodal Live Agent
 
-A minimal video agent using the Beyond Presence speech-to-video integration for LiveKit.
+Este projeto implementa um **Agente de IA Multimodal** interativo com avatar 3D realista, capaz de conduzir conversas em tempo real (áudio e vídeo) utilizando a tecnologia Google Gemini e LiveKit.
 
-Your local LLM voice agent powers the conversation, while Beyond Presence renders and streams the video avatar directly to the room.
+## 🚀 Funcionalidades
 
-## Requirements
+- **Avatar 3D Realista**: Integração com *Beyond Presence* para um avatar com *lip-sync* preciso.
+- **Inteligência Multimodal**: Usa o modelo **Gemini Realtime (Google)** para conversação fluida e natural.
+- **Latência Otimizada**: Inicialização paralela de serviços para resposta rápida.
+- **Interface Futurista**: Frontend responsivo com tema "Dark Purple & Lime Green".
+- **Visualizador de Áudio**: Animação em tempo real que reage à voz do usuário.
 
-Make sure to have an account for the following services:
+## 🛠️ Tecnologias
 
-- [Beyond Presence](https://app.bey.chat)
-- [LiveKit Cloud](https://cloud.livekit.io)
-- [OpenAI Platform](https://platform.openai.com)
+- **Backend**: Python 3.12+, LiveKit Agents, Flask.
+- **AI Engine**: Google Gemini Multimodal Live API via `livekit-plugins-google`.
+- **Avatar**: LiveKit Plugin for Beyond Presence.
+- **Frontend**: Vanilla JavaScript, HTML5, CSS3, LiveKit Client SDK.
 
-## Setup
+## 📋 Pré-requisitos
 
-### Environment
+- Python 3.12 ou superior
+- Conta no [LiveKit Cloud](https://cloud.livekit.io/)
+- Chaves de API:
+  - LiveKit (URL, API Key, API Secret)
+  - Google Gemini (API Key)
+  - Beyond Presence (API Key)
 
-Copy `.env.template` to `.env`, then provide the required values for:
+## ⚙️ Configuração
 
-- **LiveKit Server**: [API Keys](https://cloud.livekit.io/projects/p_/settings/keys)
-- **Beyond Presence API**: [API Keys](https://app.bey.chat/apiKeys)
-- **OpenAI API**: [API Keys](https://platform.openai.com/settings/organization/api-keys)
+1. **Clone o repositório**
+   ```bash
+   git clone https://github.com/adrielmoraes/Consultoria-Empresarial.git
+   cd Consultoria-Empresarial
+   ```
 
-You can use a default avatar by leaving the avatar ID variable empty, or provide one to use a specific avatar.
-See [available default avatars](https://docs.bey.dev/get-started/avatars/default).
+2. **Crie o ambiente virtual (recomendado)**
+   ```bash
+   python -m venv venv
+   .\venv\Scripts\activate
+   ```
 
-**Note**: The Beyond Presence speech-to-video integration requires a publicly accessible LiveKit server; local-only instances won't suffice.
+3. **Instale as dependências**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### Agent Worker
+4. **Configure as variáveis de ambiente**
+   Crie um arquivo `.env` na raiz (use `.env.template` como base):
+   ```ini
+   LIVEKIT_URL=wss://seu-projeto.livekit.cloud
+   LIVEKIT_API_KEY=sua_key
+   LIVEKIT_API_SECRET=seu_secret
+   
+   GOOGLE_API_KEY=sua_google_key
+   BEYOND_PRESENCE_API_KEY=sua_bey_key
+   BEY_AVATAR_ID=seu_avatar_id
+   ```
 
-Choose your preferred implementation:
+## ▶️ Como Rodar
 
-#### Python
+Para iniciar o sistema completo (Backend + Frontend):
 
-Requires Python `>=3.9`. Run:
-
-```sh
-pip install -r requirements.txt
-python main.py
+### Opção 1: Script Automático (Windows)
+Execute o arquivo batch:
+```cmd
+start_app.bat
 ```
 
-#### JavaScript
+### Opção 2: Manualmente
+1. **Inicie o Frontend (Porta 8000)**
+   ```bash
+   python frontend/server.py
+   ```
+2. **Inicie o Backend (Agente)**
+   ```bash
+   python main.py dev
+   ```
+3. Acesse `http://localhost:8000` no navegador.
 
-Install dependencies and run the example:
+## 🐛 Solução de Problemas Comuns
 
-```
-pnpm install
-node --env-file .env main.js
-```
+- **Erro de Conexão**: Verifique se não há instâncias antigas do python rodando (`taskkill /F /IM python.exe` se necessário).
+- **Sem Áudio**: Permita o acesso ao microfone no navegador.
+- **Avatar não carrega**: Verifique a `BEYOND_PRESENCE_API_KEY` e logs do backend.
 
----
+## 📄 Licença
 
-On start, a LiveKit worker subscribes to the server and dispatches agents to handle calls.
-Your voice agent processes the conversation but streams its audio output to the Beyond Presence video agent rather than directly to the room.
-Our video agent then generates synchronized avatar video from this audio stream and posts the combined video/audio feed to the room for end users.
-
-**Note**: The code also features snippets to uncomment that let you customize your agent's behavior!
-
-**Note**: LiveKit code often require the latest versions to work as expected. Keeping dependencies up to date is recommended.
-
-### Client
-
-Join a call in the [Agents Playground](https://agents-playground.livekit.io) by connecting to your LiveKit Cloud project.
-
-**Note**: The playground shows a three-way conversation, but you can hide the voice agent in your own frontend.
-
-## Next Steps
-
-- [LiveKit React Quickstart](https://docs.livekit.io/home/quickstarts/react): integrate LiveKit into your React frontend
-- [LiveKit Voice AI Quickstart](https://docs.livekit.io/agents/start/voice-ai): learn how to build voice agents with LiveKit
-- [Beyond Presence Integrations](https://docs.bey.dev/integrations): discover more integration options
+Este projeto é privado e destinado a uso de consultoria empresarial.
