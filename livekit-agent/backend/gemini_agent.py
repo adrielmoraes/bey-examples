@@ -60,17 +60,20 @@ class GeminiMultimodalAgent:
         @room.on("track_subscribed")
         def on_track_subscribed(track: rtc.RemoteTrack, publication: rtc.RemoteTrackPublication, participant: rtc.RemoteParticipant):
             # IMPORTANT: Filter out the avatar's own audio and other agents
-            if participant.identity == "bey-avatar-agent" or participant.kind != rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD:
+            avatar_identities = ["cosmo", "maya", "marketing", "ricardo", "finance", "lucas", "product", "fernanda", "legal", "bey-avatar-agent"]
+            if participant.identity in avatar_identities or participant.kind != rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD:
                 logger.debug(f"Ignoring audio from non-standard participant: {participant.identity} ({participant.kind})")
                 return
+
                 
             if track.kind == rtc.TrackKind.KIND_AUDIO:
                 logger.info(f"Subscribed to audio track from participant: {participant.identity}")
                 asyncio.create_task(self._forward_audio_to_gemini(track))
 
         # Handle existing tracks
+        avatar_identities = ["cosmo", "maya", "marketing", "ricardo", "finance", "lucas", "product", "fernanda", "legal", "bey-avatar-agent"]
         for p in room.remote_participants.values():
-            if p.identity == "bey-avatar-agent" or p.kind != rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD:
+            if p.identity in avatar_identities or p.kind != rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD:
                 continue
             for pub in p.track_publications.values():
                 if pub.track and pub.track.kind == rtc.TrackKind.KIND_AUDIO:

@@ -17,18 +17,21 @@ class SpecialistConfig:
     voice: str  # Gemini TTS voice name
     system_prompt: str
     expertise_keywords: list[str]  # Keywords that trigger this specialist
+    beyond_presence_api_key_id: int = 1 # 1 or 2
+
 
 
 # Specialist Definitions
 SPECIALISTS: Dict[str, SpecialistConfig] = {
     "marketing": SpecialistConfig(
-        name="Maya",
+        name=os.environ.get("BEY_NAME_MARKETING", "Maya"),
         role="Especialista em Marketing e Crescimento",
         avatar_id=os.environ.get("BEY_AVATAR_ID_GROWTH", "694c83e2-8895-4a98-bd16-56332ca3f449"),
         voice="Aoede",  # Female, Breezy - energetic for marketing
         expertise_keywords=["marketing", "tráfego", "vendas", "leads", "funil", "conversão", "anúncios", "redes sociais", "instagram", "facebook", "google ads"],
-        system_prompt="""
-Você é **Maya**, especialista em Marketing Digital e Growth Hacking. Você trabalha junto com Cosmo na equipe de mentoria.
+        beyond_presence_api_key_id=1,
+        system_prompt=f"""
+Você é **{os.environ.get("BEY_NAME_MARKETING", "Maya")}**, especialista em Marketing Digital e Growth Hacking. Você trabalha junto com Cosmo na equipe de mentoria.
 
 ## Sua Personalidade:
 - Enérgica e criativa
@@ -51,13 +54,14 @@ Você é **Maya**, especialista em Marketing Digital e Growth Hacking. Você tra
     ),
     
     "finance": SpecialistConfig(
-        name="Ricardo",
+        name=os.environ.get("BEY_NAME_FINANCE", "Ricardo"),
         role="Especialista em Finanças Empresariais",
-        avatar_id=os.environ.get("BEY_AVATAR_ID_FINANCE", "1b63ba4e6-d346-45d0-ad28-5ddffaac0bd0_v2"),
+        avatar_id=os.environ.get("BEY_AVATAR_ID_FINANCE", "b63ba4e6-d346-45d0-ad28-5ddffaac0bd0_v2"),
         voice="Charon",  # Male, Informative - analytical for finance
         expertise_keywords=["financeiro", "fluxo de caixa", "investimento", "lucro", "margem", "custo", "preço", "precificação", "dre", "balanço", "capital", "empréstimo"],
-        system_prompt="""
-Você é **Ricardo**, especialista em Finanças Empresariais e Investimentos. Você faz parte da equipe de mentoria liderada por Cosmo.
+        beyond_presence_api_key_id=2,
+        system_prompt=f"""
+Você é **{os.environ.get("BEY_NAME_FINANCE", "Ricardo")}**, especialista em Finanças Empresariais e Investimentos. Você faz parte da equipe de mentoria liderada por Cosmo.
 
 ## Sua Personalidade:
 - Analítico e metódico
@@ -80,13 +84,14 @@ Você é **Ricardo**, especialista em Finanças Empresariais e Investimentos. Vo
     ),
     
     "product": SpecialistConfig(
-        name="Lucas",
+        name=os.environ.get("BEY_NAME_PRODUCT", "Lucas"),
         role="Especialista em Produto e Inovação",
         avatar_id=os.environ.get("BEY_AVATAR_ID_PRODUCT", "7124071d-480e-4fdc-ad0e-a2e0680f1378"),
         voice="Fenrir",  # Male, Excitable - passionate for startups
         expertise_keywords=["produto", "mvp", "startup", "inovação", "tecnologia", "app", "software", "desenvolvimento", "roadmap", "funcionalidades", "usuário"],
-        system_prompt="""
-Você é **Lucas**, especialista em Produto, Startups e Inovação. Você colabora com Cosmo para ajudar empreendedores.
+        beyond_presence_api_key_id=1,
+        system_prompt=f"""
+Você é **{os.environ.get("BEY_NAME_PRODUCT", "Lucas")}**, especialista em Produto, Startups e Inovação. Você colabora com Cosmo para ajudar empreendedores.
 
 ## Sua Personalidade:
 - Apaixonado por tecnologia e inovação
@@ -109,13 +114,14 @@ Você é **Lucas**, especialista em Produto, Startups e Inovação. Você colabo
     ),
     
     "legal": SpecialistConfig(
-        name="Fernanda",
+        name=os.environ.get("BEY_NAME_LEGAL", "Fernanda"),
         role="Especialista em Aspectos Legais e Contratos",
         avatar_id=os.environ.get("BEY_AVATAR_ID_LEGAL", "2bc759ab-a7e5-4b91-941d-9e42450d6546"),
         voice="Kore",  # Female, Firm - authoritative for legal
         expertise_keywords=["contrato", "sócio", "sociedade", "juridico", "legal", "clt", "funcionário", "trabalhista", "marca", "patente", "lgpd"],
-        system_prompt="""
-Você é **Fernanda**, especialista em aspectos legais e contratuais para empresas. Você faz parte da equipe de mentoria de Cosmo.
+        beyond_presence_api_key_id=2,
+        system_prompt=f"""
+Você é **{os.environ.get("BEY_NAME_LEGAL", "Fernanda")}**, especialista em aspectos legais e contratuais para empresas. Você faz parte da equipe de mentoria de Cosmo.
 
 ## Sua Personalidade:
 - Cautelosa e detalhista

@@ -38,15 +38,22 @@ async def entrypoint(ctx: JobContext) -> None:
     if "BEY_API_KEY" not in os.environ and "BEYOND_PRESENCE_API_KEY" in os.environ:
         os.environ["BEY_API_KEY"] = os.environ["BEYOND_PRESENCE_API_KEY"]
 
+    bey_api_key_1 = os.environ.get("BEYOND_PRESENCE_API_KEY")
+    bey_api_key_2 = os.environ.get("BEYOND_PRESENCE_API_KEY_2")
+
+    if not bey_api_key_1:
+         logger.warning("BEYOND_PRESENCE_API_KEY not found. Avatars may fail to load.")
+
+
     # Load memory context
     memory = get_memory_manager()
     memory_context = memory.get_context_prompt()
 
-    # Host Agent (Cosmo) prompt with specialist invocation capabilities
+    host_name = os.environ.get("BEY_NAME_HOST", "Cosmo")
     specialists_list = "\n".join([f"- {name}: {role}" for name, role in list_specialists().items()])
     
     mentoria_prompt = f"""
-Você é **Cosmo**, o mentor empresarial líder de uma equipe de especialistas. Sua missão é guiar empreendedores no crescimento de seus negócios.
+Você é **{host_name}**, o mentor empresarial líder de uma equipe de especialistas. Sua missão é guiar empreendedores no crescimento de seus negócios.
 
 ## Sua Equipe de Especialistas:
 Você pode chamar especialistas para ajudar quando o assunto for muito específico:
@@ -85,39 +92,71 @@ Para chamar um especialista, diga algo como: "Deixa eu chamar nossa especialista
 {memory_context}
 """
 
+    # Explicitly set environment variables for plugins
+    if api_key:
+        os.environ["GOOGLE_API_KEY"] = api_key
+        os.environ["GOOGLE_GEMINI_API_KEY"] = api_key
+
     model = realtime.RealtimeModel(
         instructions=mentoria_prompt,
+        model="gemini-2.0-flash-exp",
         voice="Puck",
         temperature=0.8,
         api_key=api_key,
         input_audio_transcription=types.AudioTranscriptionConfig(),
     )
 
+
     # Initialize the Host Agent (Cosmo)
     agent = backend.gemini_agent.GeminiMultimodalAgent(model=model)
     
     # Initialize Cosmo's Avatar
     host_avatar_id = os.environ.get("BEY_AVATAR_ID_HOST") or os.environ.get("BEY_AVATAR_ID")
-    bey_avatar_session = bey.AvatarSession(avatar_id=host_avatar_id)
+    bey_avatar_session = bey.AvatarSession(
+        avatar_id=host_avatar_id,
+        api_key=bey_api_key_1,
+        avatar_participant_identity="cosmo",
+        avatar_participant_name=host_name
+    )
+
+
+
+    # Redacted log to verify key existence (do not show full key)
+    if api_key:
+        logger.info(f"Gemini API Key loaded: {api_key[:4]}...{api_key[-4:]}")
+    else:
+        logger.error("Gemini API Key is MISSING!")
 
     # Initialize the Multi-Agent Orchestrator
     orchestrator = MultiAgentOrchestrator(
         host_agent=agent,
         room=ctx.room,
-        api_key=api_key
+        google_api_key=api_key,
+        api_key_1=bey_api_key_1,
+        api_key_2=bey_api_key_2
     )
+
 
     # Store orchestrator reference in agent for potential use
     agent.orchestrator = orchestrator
 
     logger.info("Starting Cosmo (Host Agent) and Avatar Session...")
     try:
-        await asyncio.gather(
-            agent.start(ctx.room),
-            bey_avatar_session.start(agent, room=ctx.room),
-            orchestrator.start_all_specialists()
-        )
-        logger.info("Host Agent and Avatar started successfully")
+        # 1. Start Host Agent (Gemini)
+        await agent.start(ctx.room)
+        await asyncio.sleep(3.0)
+        
+        # 2. Start Host Avatar (Bey)
+        await bey_avatar_session.start(agent, room=ctx.room)
+        logger.info("Host Avatar started successfully")
+        await asyncio.sleep(5.0) # Delay before starting specialists to avoid burst
+        
+        # 3. Start Specialists (Staggered inside with 5s delays)
+        await orchestrator.start_all_specialists()
+        
+        logger.info("Host Agent and all services started successfully")
+
+
         
         # Log available specialists
         logger.info(f"Available specialists: {list(list_specialists().keys())}")
