@@ -35,11 +35,8 @@ class SpecialistAgent:
         logger.info(f"Initialized SpecialistAgent {self.config.name} with Beyond Presence Key: {bey_short}")
 
 
-        self.model = None
-        self.session = None
+        self.agent = None
         self.room = None
-        self.audio_out_source = None
-        self.audio_out_track = None
         self.avatar_session = None
         self.is_active = False
 
@@ -48,16 +45,8 @@ class SpecialistAgent:
         self.room = room
         logger.info(f"Starting Specialist Agent: {self.config.name}")
 
-        # Create audio output for this specialist
-        self.audio_out_source = rtc.AudioSource(24000, 1)
-        self.audio_out_track = rtc.LocalAudioTrack.create_audio_track(
-            f"specialist-{self.config.name.lower()}-voice", self.audio_out_source
-        )
-        await room.local_participant.publish_track(self.audio_out_track)
-        logger.info(f"Published {self.config.name}'s audio track")
-
         # Initialize Gemini model for this specialist
-        self.model = realtime.RealtimeModel(
+        model = realtime.RealtimeModel(
             instructions=self.config.system_prompt,
             model="gemini-2.0-flash-exp",
             voice=self.config.voice,  # Use specialist's unique voice
@@ -66,19 +55,11 @@ class SpecialistAgent:
             input_audio_transcription=types.AudioTranscriptionConfig(),
         )
         
-        # Explicitly ensure the session gets the key from the model
-        self.session = self.model.session()
-        logger.info(f"Gemini Realtime session initialized for {self.config.name}")
-
+        from backend.gemini_agent import GeminiMultimodalAgent
+        self.agent = GeminiMultimodalAgent(model=model, identity=self.config.name.lower())
         
-        # Set up event handlers
-        @self.session.on("generation_created")
-        def on_generation_created(event: llm.GenerationCreatedEvent):
-            asyncio.create_task(self._consume_message_stream(event.message_stream))
-
-        @self.session.on("error")
-        def on_error(e):
-            logger.error(f"{self.config.name} Session Error: {e}")
+        await self.agent.start(room)
+        logger.info(f"Gemini agent started for {self.config.name}")
 
         # Initialize Beyond Presence Avatar for this specialist
         self.avatar_session = bey.AvatarSession(
@@ -89,19 +70,12 @@ class SpecialistAgent:
         )
 
         
-        # Create a mock agent for Bey to attach to
-        class MockAgent:
-            def __init__(self, audio_source):
-                self.output = type('obj', (object,), {'audio': None})()
-                self.audio_out_source = audio_source
-        
-        mock_agent = MockAgent(self.audio_out_source)
-        
         # Attempt to start avatar session with retries
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                await self.avatar_session.start(mock_agent, room=room)
+                # bey plugin will attach to self.agent and override its output.audio
+                await self.avatar_session.start(self.agent, room=room)
                 logger.info(f"{self.config.name}'s avatar started")
                 break
             except Exception as e:
@@ -116,37 +90,39 @@ class SpecialistAgent:
 
     async def speak(self, message: str):
         """Have the specialist speak a message."""
-        if not self.session:
-            logger.error(f"{self.config.name} session not initialized")
+        if not self.agent or not self.agent.session:
+            logger.error(f"{self.config.name} agent not initialized")
             return
         
         logger.info(f"{self.config.name} speaking: {message[:50]}...")
-        # Send message to Gemini to generate audio response
-        self.session.send_text(message)
-
-    async def _consume_message_stream(self, message_stream):
-        """Process audio from Gemini."""
-        try:
-            async for message in message_stream:
-                asyncio.create_task(self._consume_audio_stream(message.audio_stream))
-        except Exception as e:
-            logger.error(f"Error in {self.config.name}'s message stream: {e}")
-
-    async def _consume_audio_stream(self, stream: utils.aio.Chan[rtc.AudioFrame]):
-        """Capture audio and send to avatar."""
-        try:
-            async for frame in stream:
-                if self.avatar_session and hasattr(self.avatar_session, '_data_audio_output'):
-                    await self.avatar_session._data_audio_output.capture_frame(frame)
-                else:
-                    await self.audio_out_source.capture_frame(frame)
-        except Exception as e:
-            logger.error(f"Error in {self.config.name}'s audio stream: {e}")
+        self.agent.session.send_text(message)
 
     async def stop(self):
         """Clean up the specialist agent."""
+        logger.info(f"Stopping Specialist Agent: {self.config.name}")
         self.is_active = False
-        # TODO: Implement proper cleanup
+        
+        try:
+            # 1. Stop Avatar Session
+            if self.avatar_session:
+                await self.avatar_session.stop()
+                logger.info(f"{self.config.name}'s avatar session stopped")
+            
+            # 2. Stop Gemini Agent (includes track unpublishing and session closing)
+            if self.agent:
+                # We need a stop method in GeminiMultimodalAgent too for full cleanup
+                if hasattr(self.agent, 'stop'):
+                    await self.agent.stop()
+                elif self.agent.session:
+                    await self.agent.session.aclose()
+                
+                if self.room and self.agent.audio_out_track:
+                    await self.room.local_participant.unpublish_track(self.agent.audio_out_track.sid)
+                
+                logger.info(f"{self.config.name}'s agent cleaned up")
+                
+        except Exception as e:
+            logger.error(f"Error while stopping {self.config.name}: {e}")
 
 
 class MultiAgentOrchestrator:
@@ -210,14 +186,23 @@ class MultiAgentOrchestrator:
             return False
 
     async def start_all_specialists(self):
-        """Start all configured specialists sequentially with delays to avoid API limits."""
-        logger.info("Starting all specialists sequentially with 5s delay...")
-        for spec_id in SPECIALISTS.keys():
-            await self.invoke_specialist(spec_id, introduce=False)
-            # Increased delay to avoid overlapping Beyond Presence session initializations
-            await asyncio.sleep(5.0)
+        """Start all configured specialists simultaneously using gather."""
+        logger.info("Starting all specialists simultaneously...")
         
-        logger.info("All specialists started sequentially.")
+        tasks = []
+        for i, spec_id in enumerate(SPECIALISTS.keys()):
+            # Small staggered delay (jitter) to prevent simultaneous API burst, 
+            # but much faster than 5s sequential.
+            tasks.append(self._start_with_delay(spec_id, delay=i * 1.5))
+        
+        # Run all initializations in parallel
+        await asyncio.gather(*tasks)
+        logger.info("All specialists initialization triggered.")
+
+    async def _start_with_delay(self, specialist_id: str, delay: float):
+        """Helper to start a specialist after a small delay."""
+        await asyncio.sleep(delay)
+        return await self.invoke_specialist(specialist_id, introduce=False)
 
 
 

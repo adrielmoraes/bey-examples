@@ -14,8 +14,9 @@ class MockOutput:
         self.audio = None
 
 class GeminiMultimodalAgent:
-    def __init__(self, model: realtime.RealtimeModel):
+    def __init__(self, model: realtime.RealtimeModel, identity: str = "host"):
         self.model = model
+        self.identity = identity.lower()
         self.session = None
         self.room = None
         self.audio_out_source = None
@@ -59,25 +60,47 @@ class GeminiMultimodalAgent:
         # Subscribe to incoming user audio
         @room.on("track_subscribed")
         def on_track_subscribed(track: rtc.RemoteTrack, publication: rtc.RemoteTrackPublication, participant: rtc.RemoteParticipant):
-            # IMPORTANT: Filter out the avatar's own audio and other agents
-            avatar_identities = ["cosmo", "maya", "marketing", "ricardo", "finance", "lucas", "product", "fernanda", "legal", "bey-avatar-agent"]
-            if participant.identity in avatar_identities or participant.kind != rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD:
-                logger.debug(f"Ignoring audio from non-standard participant: {participant.identity} ({participant.kind})")
+            # Audio routing logic:
+            # 1. Never hear yourself
+            if participant.identity == self.identity:
                 return
-
+            
+            # identities of ALL agents
+            all_agent_identities = ["cosmo", "maya", "marketing", "ricardo", "finance", "lucas", "product", "fernanda", "legal", "bey-avatar-agent"]
+            
+            is_agent = participant.identity in all_agent_identities or participant.kind != rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD
+            
+            if is_agent:
+                # Specialized routing:
+                if self.identity == "cosmo":
+                    # Host hears all authorized agents (specialists)
+                    logger.info(f"Host (Cosmo) allowing audio from agent: {participant.identity}")
+                elif participant.identity == "cosmo":
+                    # Specialists hear the Host
+                    logger.info(f"Specialist ({self.identity}) allowing audio from Host: {participant.identity}")
+                else:
+                    # Specialists ignore other specialists to avoid cross-talk chaos
+                    return
                 
             if track.kind == rtc.TrackKind.KIND_AUDIO:
-                logger.info(f"Subscribed to audio track from participant: {participant.identity}")
+                logger.info(f"Subscribed to audio track from: {participant.identity} (Target: {self.identity})")
                 asyncio.create_task(self._forward_audio_to_gemini(track))
 
         # Handle existing tracks
-        avatar_identities = ["cosmo", "maya", "marketing", "ricardo", "finance", "lucas", "product", "fernanda", "legal", "bey-avatar-agent"]
+        all_agent_identities = ["cosmo", "maya", "marketing", "ricardo", "finance", "lucas", "product", "fernanda", "legal", "bey-avatar-agent"]
         for p in room.remote_participants.values():
-            if p.identity in avatar_identities or p.kind != rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD:
+            if p.identity == self.identity:
                 continue
+            
+            is_agent = p.identity in all_agent_identities or p.kind != rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD
+            
+            if is_agent:
+                if self.identity != "cosmo" and p.identity != "cosmo":
+                    continue # Specialists ignore other specialists
+            
             for pub in p.track_publications.values():
                 if pub.track and pub.track.kind == rtc.TrackKind.KIND_AUDIO:
-                    logger.info(f"Found existing audio track for participant: {p.identity}")
+                    logger.info(f"Found existing audio track for: {p.identity} (Target: {self.identity})")
                     asyncio.create_task(self._forward_audio_to_gemini(pub.track))
 
     async def _forward_audio_to_gemini(self, track: rtc.RemoteAudioTrack):
@@ -123,3 +146,11 @@ class GeminiMultimodalAgent:
             logger.info(f"Finished consuming Gemini audio stream. Total frames: {frame_count}")
         except Exception as e:
             logger.error(f"Error consuming audio stream: {e}")
+
+    async def stop(self):
+        """Clean up agent resources."""
+        logger.info(f"Stopping Gemini agent ({self.identity})")
+        if self.session:
+            await self.session.aclose()
+        if self.room and self.audio_out_track:
+            await self.room.local_participant.unpublish_track(self.audio_out_track.sid)
