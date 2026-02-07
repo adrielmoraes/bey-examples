@@ -1,42 +1,175 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Live Agent</title>
+    <title>Mentoria Empresarial AI - Mesa Redonda</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 </head>
+
 <body>
+    <div class="background-effects">
+        <div class="grid-overlay"></div>
+        <div class="particles"></div>
+        <div class="glow-orb" style="top: 10%; left: 20%;"></div>
+        <div class="glow-orb" style="bottom: 15%; right: 10%; animation-delay: 2s;"></div>
+    </div>
+
     <div class="app-container">
         <header>
-            <div class="logo">GEMINI <span class="accent">LIVE</span></div>
-            <div class="status" id="status">DISCONNECTED</div>
+            <div class="logo-container">
+                <div class="logo-icon"></div>
+                <div class="logo-text">MESA REDONDA <span class="accent">AI</span></div>
+            </div>
+            <div class="status-badge" id="status">
+                <span class="status-dot"></span>
+                <span class="status-text">DESCONECTADO</span>
+            </div>
         </header>
-        
+
         <main>
-            <div class="video-wrapper">
-                <div id="video-container" class="video-container">
-                    <!-- Agent Video will appear here -->
-                    <div class="placeholder">
-                        <div class="scanner"></div>
-                        <p>WAITING FOR AGENT</p>
+            <!-- Avatars Grid (All in one row) -->
+            <div class="avatars-grid">
+                <!-- Maya - Marketing -->
+                <div class="avatar-card specialist" id="avatar-maya" data-specialist="marketing">
+                    <div class="avatar-header">
+                        <span class="avatar-name">MAYA</span>
+                        <span class="avatar-role">Marketing</span>
+                    </div>
+                    <div class="video-frame">
+                        <div id="video-container-maya" class="video-container">
+                            <div class="placeholder">
+                                <div class="avatar-icon">📈</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="avatar-status">
+                        <span class="status-indicator offline"></span>
+                        <span>Disponível</span>
                     </div>
                 </div>
-                <div class="controls-overlay">
-                    <button id="connect-btn" class="btn primary">CONNECT</button>
-                    <button id="mic-btn" class="btn icon-btn disabled">
-                        <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path fill="currentColor" d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-                    </button>
-                    <button id="disconnect-btn" class="btn danger hidden">END</button>
+
+                <!-- Ricardo - Finance -->
+                <div class="avatar-card specialist" id="avatar-ricardo" data-specialist="finance">
+                    <div class="avatar-header">
+                        <span class="avatar-name">RICARDO</span>
+                        <span class="avatar-role">Finanças</span>
+                    </div>
+                    <div class="video-frame">
+                        <div id="video-container-ricardo" class="video-container">
+                            <div class="placeholder">
+                                <div class="avatar-icon">💰</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="avatar-status">
+                        <span class="status-indicator offline"></span>
+                        <span>Disponível</span>
+                    </div>
+                </div>
+
+                <!-- Cosmo - Host (Center) -->
+                <div class="avatar-card host" id="avatar-cosmo">
+                    <div class="avatar-header">
+                        <span class="avatar-name">COSMO</span>
+                        <span class="avatar-role">Mentor Principal</span>
+                    </div>
+                    <div class="video-frame">
+                        <div class="corner-bracket tl"></div>
+                        <div class="corner-bracket tr"></div>
+                        <div class="corner-bracket bl"></div>
+                        <div class="corner-bracket br"></div>
+                        <div id="video-container-cosmo" class="video-container">
+                            <div class="placeholder">
+                                <div class="scanner-line"></div>
+                                <div class="avatar-icon">🎯</div>
+                                <p>AGUARDANDO...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="avatar-status">
+                        <span class="status-indicator offline"></span>
+                        <span>Offline</span>
+                    </div>
+                </div>
+
+                <!-- Lucas - Product -->
+                <div class="avatar-card specialist" id="avatar-lucas" data-specialist="product">
+                    <div class="avatar-header">
+                        <span class="avatar-name">LUCAS</span>
+                        <span class="avatar-role">Produto</span>
+                    </div>
+                    <div class="video-frame">
+                        <div id="video-container-lucas" class="video-container">
+                            <div class="placeholder">
+                                <div class="avatar-icon">💡</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="avatar-status">
+                        <span class="status-indicator offline"></span>
+                        <span>Disponível</span>
+                    </div>
+                </div>
+
+                <!-- Fernanda - Legal -->
+                <div class="avatar-card specialist" id="avatar-fernanda" data-specialist="legal">
+                    <div class="avatar-header">
+                        <span class="avatar-name">FERNANDA</span>
+                        <span class="avatar-role">Jurídico</span>
+                    </div>
+                    <div class="video-frame">
+                        <div id="video-container-fernanda" class="video-container">
+                            <div class="placeholder">
+                                <div class="avatar-icon">⚖️</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="avatar-status">
+                        <span class="status-indicator offline"></span>
+                        <span>Disponível</span>
+                    </div>
                 </div>
             </div>
-            
-            <div class="visualizer-container">
-                <canvas id="visualizer"></canvas>
+
+            <!-- Control Bar -->
+            <div class="control-bar">
+                <div class="visualizer-panel">
+                    <canvas id="visualizer"></canvas>
+                    <div class="panel-label">AUDIO SPECTRUM</div>
+                </div>
+
+                <div class="controls-overlay">
+                    <button id="connect-btn" class="btn primary">
+                        <span class="btn-text">INICIAR SESSÃO</span>
+                        <div class="btn-glow"></div>
+                    </button>
+
+                    <div class="secondary-controls">
+                        <button id="mic-btn" class="btn icon-btn disabled" aria-label="Microfone">
+                            <svg viewBox="0 0 24 24" width="24" height="24">
+                                <path fill="currentColor"
+                                    d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+                                <path fill="currentColor"
+                                    d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+                            </svg>
+                        </button>
+                        <button id="disconnect-btn" class="btn danger hidden" aria-label="Encerrar">
+                            <span class="btn-icon">✕</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
     <script src="app.js"></script>
 </body>
+
 </html>
